@@ -33,6 +33,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest("Email already exists.");
         }
+        // TODO walidacja danych: nick (unique), email (składnia) i hasło (składnia i długość)
 
         var user = new User
         {
@@ -75,6 +76,7 @@ public class AuthController : ControllerBase
             Token = token
         });
     }
+    // TODO wywalić to, testowa funckja do sprawdzenia czy token jest poprawnie generowany i walidowany
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()

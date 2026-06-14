@@ -1,6 +1,6 @@
 ﻿namespace TaskFlow.Api.Models.Enums;
 
-public enum TaskStatus
+public enum TaskState
 {
     ToDo,
     InProgress,

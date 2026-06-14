@@ -34,6 +34,7 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
+// budwoa tokenu JWT i konfiguracja autoryzacji
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
