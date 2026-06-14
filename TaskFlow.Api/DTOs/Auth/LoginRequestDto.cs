@@ -2,6 +2,6 @@
 
 public class LoginRequestDto
 {
-    public string Email { get; set; } = null!;
+    public string Login { get; set; } = null!;  //email lub nick
     public string Password { get; set; } = null!;
 }

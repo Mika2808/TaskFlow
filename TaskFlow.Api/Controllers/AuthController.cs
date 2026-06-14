@@ -54,7 +54,9 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(LoginRequestDto request)
     {
         var user = await _dbContext.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => 
+            u.Email == request.Login || 
+            u.Nick == request.Login);
 
         if (user == null)
             return Unauthorized("Invalid credentials");
@@ -71,6 +73,17 @@ public class AuthController : ControllerBase
         return Ok(new AuthResponseDto
         {
             Token = token
+        });
+    }
+    [Authorize]
+    [HttpGet("me")]
+    public IActionResult Me()
+    {
+        return Ok(new
+        {
+            UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+            Email = User.FindFirst(ClaimTypes.Email)?.Value,
+            Role = User.FindFirst(ClaimTypes.Role)?.Value
         });
     }
     private string GenerateJwtToken(User user)
