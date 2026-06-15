@@ -23,7 +23,15 @@ public class AuthController : ControllerBase
     {
         _dbContext = dbContext;
     }
+    /// <summary>
+    /// Registers a new user
+    /// </summary>
+    /// <param name="request">Registration data</param>
+    /// <returns>Registration result</returns>
     [HttpPost("register")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(RegisterRequestDto request)
     {
         var emailExists = await _dbContext.Users
@@ -31,9 +39,22 @@ public class AuthController : ControllerBase
 
         if (emailExists)
         {
-            return BadRequest("Email already exists.");
+            return Problem(
+                title: "Email already exists",
+                detail: "User with provided email already exists.",
+                statusCode: StatusCodes.Status409Conflict);
         }
-        // TODO walidacja danych: nick (unique), email (składnia) i hasło (składnia i długość)
+
+        var nickExists = await _dbContext.Users
+            .AnyAsync(u => u.Nick == request.Nick);
+
+        if (nickExists)
+        {
+            return Problem(
+                title: "Nick already exists",
+                detail: "User with provided nick already exists.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
 
         var user = new User
         {
@@ -51,7 +72,15 @@ public class AuthController : ControllerBase
         return Ok("User registered successfully.");
     }
 
+    /// <summary>
+    /// Logs in user
+    /// </summary>
+    /// <param name="request">Login data</param>
+    /// <returns>Authentication token</returns>
     [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(LoginRequestDto request)
     {
         var user = await _dbContext.Users
@@ -60,14 +89,24 @@ public class AuthController : ControllerBase
             u.Nick == request.Login);
 
         if (user == null)
-            return Unauthorized("Invalid credentials");
+        {
+            return Problem(
+                title: "Invalid credentials",
+                detail: "Login or password is incorrect.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
 
         var passwordValid = BCrypt.Net.BCrypt.Verify(
             request.Password,
             user.PasswordHash);
 
         if (!passwordValid)
-            return Unauthorized("Invalid credentials");
+        {
+            return Problem(
+                title: "Invalid credentials",
+                detail: "Login or password is incorrect.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
 
         var token = GenerateJwtToken(user);
 
@@ -77,15 +116,33 @@ public class AuthController : ControllerBase
         });
     }
     // TODO wywalić to, testowa funckja do sprawdzenia czy token jest poprawnie generowany i walidowany
+    /// <summary>
+    /// Gets current logged user data
+    /// </summary>
+    /// <returns>Logged user data</returns>
     [Authorize]
     [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public IActionResult Me()
     {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userId == null || email == null || role == null)
+        {
+            return Problem(
+                title: "Invalid authentication token",
+                detail: "The authentication token does not contain required user claims.",
+                statusCode: StatusCodes.Status401Unauthorized);
+        }
+
         return Ok(new
         {
-            UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
-            Email = User.FindFirst(ClaimTypes.Email)?.Value,
-            Role = User.FindFirst(ClaimTypes.Role)?.Value
+            UserId = userId,
+            Email = email,
+            Role = role
         });
     }
     private string GenerateJwtToken(User user)

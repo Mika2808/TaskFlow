@@ -21,20 +21,37 @@ public class TaskController : ControllerBase
         _db = db;
     }
 
-    private Guid GetUserId()
+    private bool TryGetUserId(out Guid userId)
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (value == null)
-            throw new Exception("Missing NameIdentifier claim in JWT");
-
-        return Guid.Parse(value);
+        return Guid.TryParse(value, out userId);
     }
 
+    private IActionResult InvalidToken()
+    {
+        return Problem(
+            title: "Invalid authentication token",
+            detail: "The authentication token does not contain a valid user identifier.",
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    private async Task<bool> TaskGroupExists(Guid groupId, Guid userId)
+    {
+        return await _db.TaskGroups.AnyAsync(g => g.Id == groupId && g.OwnerId == userId);
+    }
+
+    /// <summary>
+    /// Gets all tasks for logged user
+    /// </summary>
+    /// <returns>User tasks</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(List<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetTasks()
     {
-        var userId = GetUserId();
+        if (!TryGetUserId(out var userId))
+            return InvalidToken();
 
         var tasks = await _db.Tasks
             .Where(t => t.OwnerId == userId)
@@ -53,10 +70,20 @@ public class TaskController : ControllerBase
         return Ok(tasks);
     }
 
+    /// <summary>
+    /// Gets task by id for logged user
+    /// </summary>
+    /// <param name="id">Task id</param>
+    /// <returns>Task details</returns>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(TaskDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTask(Guid id)
     {
-        var userId = GetUserId();
+        if (!TryGetUserId(out var userId))
+            return InvalidToken();
 
         var task = await _db.Tasks
             .Where(t => t.Id == id && t.OwnerId == userId)
@@ -73,15 +100,38 @@ public class TaskController : ControllerBase
             .FirstOrDefaultAsync();
 
         if (task == null)
-            return NotFound();
+        {
+            return Problem(
+                title: "Task not found",
+                detail: "Task with provided id was not found for logged user.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
 
         return Ok(task);
     }
-
+    
+    /// <summary>
+    /// Creates a new task for logged user
+    /// </summary>
+    /// <param name="request">Task data</param>
+    /// <returns>Created task</returns>
     [HttpPost]
+    [ProducesResponseType(typeof(TaskDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CreateTask(CreateTaskDto request)
     {
-        var userId = GetUserId();
+        if (!TryGetUserId(out var userId))
+            return InvalidToken();
+
+        if (request.GroupId.HasValue && !await TaskGroupExists(request.GroupId.Value, userId))
+        {
+            return Problem(
+                title: "Task group not found",
+                detail: "Task group with provided id was not found for logged user.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
 
         var task = new TaskEntity
         {
@@ -109,19 +159,47 @@ public class TaskController : ControllerBase
             UpdatedAt = task.UpdatedAt
         };
 
-        return Ok(result);
+        return CreatedAtAction(nameof(GetTask), new { id = task.Id }, result);
     }
 
+    /// <summary>
+    /// Updates task for logged user
+    /// </summary>
+    /// <param name="id">Task id</param>
+    /// <param name="dto">Task data to update</param>
+    /// <returns>Updated task</returns>
     [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(TaskDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTask(Guid id, UpdateTaskDto dto)
     {
-        var userId = GetUserId();
+        if (!TryGetUserId(out var userId))
+            return InvalidToken();
 
         var task = await _db.Tasks
             .FirstOrDefaultAsync(t => t.Id == id && t.OwnerId == userId);
 
         if (task == null)
-            return NotFound();
+        {
+            return Problem(
+                title: "Task not found",
+                detail: "Task with provided id was not found for logged user.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        if (dto.Name == null && dto.Description == null && dto.Status == null && !dto.GroupId.HasValue)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["request"] = ["At least one task field must be provided."]
+            })
+            {
+                Title = "Invalid task update request",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
 
         if (dto.Name != null)
             task.Name = dto.Name;
@@ -133,25 +211,61 @@ public class TaskController : ControllerBase
             task.Status = dto.Status.Value;
 
         if (dto.GroupId.HasValue)
+        {
+            if (!await TaskGroupExists(dto.GroupId.Value, userId))
+            {
+                return Problem(
+                    title: "Task group not found",
+                    detail: "Task group with provided id was not found for logged user.",
+                    statusCode: StatusCodes.Status404NotFound);
+            }
+
             task.GroupId = dto.GroupId;
+        }
 
         task.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
 
-        return Ok(task);
+        var result = new TaskDto
+        {
+            Id = task.Id,
+            Name = task.Name,
+            Description = task.Description,
+            Status = task.Status,
+            GroupId = task.GroupId,
+            CreatedAt = task.CreatedAt,
+            UpdatedAt = task.UpdatedAt
+        };
+
+        return Ok(result);
     }
 
+    /// <summary>
+    /// Deletes task for logged user
+    /// </summary>
+    /// <param name="id">Task id</param>
+    /// <returns>No content</returns>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteTask(Guid id)
     {
-        var userId = GetUserId();
+        if (!TryGetUserId(out var userId))
+            return InvalidToken();
 
         var task = await _db.Tasks
             .FirstOrDefaultAsync(t => t.Id == id && t.OwnerId == userId);
 
         if (task == null)
-            return NotFound();
+        {
+            return Problem(
+                title: "Task not found",
+                detail: "Task with provided id was not found for logged user.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
 
         _db.Tasks.Remove(task);
         await _db.SaveChangesAsync();
