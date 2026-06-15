@@ -7,4 +7,5 @@ public class UpdateTaskDto
     public string? Description { get; set; }
     public TaskState? Status { get; set; }
     public Guid? GroupId { get; set; }
+    public DateTime? Deadline { get; set; }
 }

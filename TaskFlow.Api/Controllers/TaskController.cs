@@ -44,17 +44,54 @@ public class TaskController : ControllerBase
     /// <summary>
     /// Gets all tasks for logged user
     /// </summary>
+    /// <param name="status">Task status filter</param>
+    /// <param name="groupId">Task group id filter</param>
+    /// <param name="sortBy">Task sorting field. Supported values: createdAt, deadline</param>
     /// <returns>User tasks</returns>
     [HttpGet]
     [ProducesResponseType(typeof(List<TaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetTasks()
+    public async Task<IActionResult> GetTasks(
+        [FromQuery] TaskState? status,
+        [FromQuery] Guid? groupId,
+        [FromQuery] string? sortBy)
     {
         if (!TryGetUserId(out var userId))
             return InvalidToken();
 
-        var tasks = await _db.Tasks
-            .Where(t => t.OwnerId == userId)
+        var query = _db.Tasks
+            .Where(t => t.OwnerId == userId);
+
+        if (status.HasValue)
+            query = query.Where(t => t.Status == status.Value);
+
+        if (groupId.HasValue)
+            query = query.Where(t => t.GroupId == groupId.Value);
+
+        if (sortBy != null)
+        {
+            query = sortBy.ToLowerInvariant() switch
+            {
+                "createdat" => query.OrderByDescending(t => t.CreatedAt),
+                "deadline" => query.OrderBy(t => t.Deadline == null).ThenBy(t => t.Deadline),
+                _ => null
+            };
+
+            if (query == null)
+            {
+                return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+                {
+                    [nameof(sortBy)] = ["Supported values are: createdAt, deadline."]
+                })
+                {
+                    Title = "Invalid task sort request",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+        }
+
+        var tasks = await query
             .Select(t => new TaskDto
             {
                 Id = t.Id,
@@ -62,6 +99,7 @@ public class TaskController : ControllerBase
                 Description = t.Description,
                 Status = t.Status,
                 GroupId = t.GroupId,
+                Deadline = t.Deadline,
                 CreatedAt = t.CreatedAt,
                 UpdatedAt = t.UpdatedAt
             })
@@ -94,6 +132,7 @@ public class TaskController : ControllerBase
                 Description = t.Description,
                 Status = t.Status,
                 GroupId = t.GroupId,
+                Deadline = t.Deadline,
                 CreatedAt = t.CreatedAt,
                 UpdatedAt = t.UpdatedAt
             })
@@ -141,6 +180,7 @@ public class TaskController : ControllerBase
             Name = request.Name,
             Description = request.Description,
             Status = TaskState.ToDo,
+            Deadline = request.Deadline,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -155,6 +195,7 @@ public class TaskController : ControllerBase
             Description = task.Description,
             Status = task.Status,
             GroupId = task.GroupId,
+            Deadline = task.Deadline,
             CreatedAt = task.CreatedAt,
             UpdatedAt = task.UpdatedAt
         };
@@ -189,7 +230,7 @@ public class TaskController : ControllerBase
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        if (dto.Name == null && dto.Description == null && dto.Status == null && !dto.GroupId.HasValue)
+        if (dto.Name == null && dto.Description == null && dto.Status == null && !dto.GroupId.HasValue && !dto.Deadline.HasValue)
         {
             return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
             {
@@ -209,6 +250,9 @@ public class TaskController : ControllerBase
 
         if (dto.Status != null)
             task.Status = dto.Status.Value;
+
+        if (dto.Deadline.HasValue)
+            task.Deadline = dto.Deadline;
 
         if (dto.GroupId.HasValue)
         {
@@ -234,6 +278,7 @@ public class TaskController : ControllerBase
             Description = task.Description,
             Status = task.Status,
             GroupId = task.GroupId,
+            Deadline = task.Deadline,
             CreatedAt = task.CreatedAt,
             UpdatedAt = task.UpdatedAt
         };

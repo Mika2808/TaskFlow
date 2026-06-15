@@ -11,6 +11,7 @@ public class TaskDto
     public TaskState Status { get; set; }
 
     public Guid? GroupId { get; set; }
+    public DateTime? Deadline { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
