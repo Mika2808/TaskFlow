@@ -230,7 +230,13 @@ public class TaskController : ControllerBase
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        if (dto.Name == null && dto.Description == null && dto.Status == null && !dto.GroupId.HasValue && !dto.Deadline.HasValue)
+        if (dto.Name == null &&
+            dto.Description == null &&
+            dto.Status == null &&
+            !dto.GroupId.HasValue &&
+            !dto.Deadline.HasValue &&
+            !dto.ClearGroup &&
+            !dto.ClearDeadline)
         {
             return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
             {
@@ -251,10 +257,16 @@ public class TaskController : ControllerBase
         if (dto.Status != null)
             task.Status = dto.Status.Value;
 
-        if (dto.Deadline.HasValue)
+        if (dto.ClearDeadline)
+            task.Deadline = null;
+        else if (dto.Deadline.HasValue)
             task.Deadline = dto.Deadline;
 
-        if (dto.GroupId.HasValue)
+        if (dto.ClearGroup)
+        {
+            task.GroupId = null;
+        }
+        else if (dto.GroupId.HasValue)
         {
             if (!await TaskGroupExists(dto.GroupId.Value, userId))
             {

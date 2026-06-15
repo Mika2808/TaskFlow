@@ -8,4 +8,6 @@ public class UpdateTaskDto
     public TaskState? Status { get; set; }
     public Guid? GroupId { get; set; }
     public DateTime? Deadline { get; set; }
+    public bool ClearGroup { get; set; }
+    public bool ClearDeadline { get; set; }
 }
