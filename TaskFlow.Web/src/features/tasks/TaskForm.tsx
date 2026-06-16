@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { TaskGroup, TaskItem, createTask } from "../../api";
+import { createTask } from "../../api";
+import type { TaskGroup, TaskItem } from "../../models";
 import { getErrorMessage } from "../../shared/errors";
 
 type TaskFormProps = {

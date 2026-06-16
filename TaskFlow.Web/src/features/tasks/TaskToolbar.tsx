@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { TaskGroup } from "../../api";
+import type { TaskGroup } from "../../models";
 import { taskStatuses, TaskStatusFilter } from "./taskStatuses";
 
 type TaskToolbarProps = {

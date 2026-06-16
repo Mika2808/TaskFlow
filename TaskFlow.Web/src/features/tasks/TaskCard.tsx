@@ -1,6 +1,7 @@
 import { CalendarCheck, Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { TaskGroup, TaskItem, TaskStatus, deleteTask, updateTask } from "../../api";
+import { deleteTask, updateTask } from "../../api";
+import type { TaskGroup, TaskItem, TaskStatus } from "../../models";
 import { getErrorMessage } from "../../shared/errors";
 import { formatDeadline, getGroupName, toDateTimeLocal } from "../../shared/formatters";
 import { taskStatuses } from "./taskStatuses";

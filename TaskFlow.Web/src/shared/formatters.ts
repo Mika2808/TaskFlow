@@ -1,4 +1,4 @@
-import { TaskGroup } from "../api";
+import type { TaskGroup } from "../models";
 
 export function getGroupName(groups: TaskGroup[], groupId: string | null) {
   return groups.find((group) => group.id === groupId)?.name;

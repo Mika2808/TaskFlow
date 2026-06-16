@@ -1,6 +1,7 @@
 import { Folder, Info, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { TaskGroup, createTaskGroup, deleteTaskGroup } from "../../api";
+import { createTaskGroup, deleteTaskGroup } from "../../api";
+import type { TaskGroup } from "../../models";
 import { getErrorMessage } from "../../shared/errors";
 
 type GroupPanelProps = {

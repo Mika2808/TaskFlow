@@ -1,4 +1,4 @@
-import { TaskGroup, TaskItem } from "../../api";
+import type { TaskGroup, TaskItem } from "../../models";
 import { TaskCard } from "./TaskCard";
 
 type TaskDashboardProps = {
