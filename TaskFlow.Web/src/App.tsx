@@ -18,6 +18,7 @@ function App() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
   const [groups, setGroups] = useState<TaskGroup[]>([]);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [groupFilter, setGroupFilter] = useState("all");
@@ -54,15 +55,17 @@ function App() {
     setMessage("");
 
     try {
-      const [nextTasks, nextGroups] = await Promise.all([
+      const [nextTasks, nextAllTasks, nextGroups] = await Promise.all([
         getTasks(token, {
           status: statusFilter,
           groupId: groupFilter,
           sortBy,
         }),
+        getTasks(token, { status: "all", groupId: "all", sortBy }),
         getTaskGroups(token),
       ]);
       setTasks(nextTasks);
+      setAllTasks(nextAllTasks);
       setGroups(nextGroups);
     } catch (error) {
       setMessage(getErrorMessage(error));
@@ -81,6 +84,7 @@ function App() {
     setToken(null);
     setUser(null);
     setTasks([]);
+    setAllTasks([]);
     setGroups([]);
   }
 
@@ -117,7 +121,7 @@ function App() {
           <h1>Today&apos;s work</h1>
         </div>
         <div className="topbar-actions">
-          <span>{user.email}</span>
+          <span>Hello, {user.name}!</span>
           <button className="icon-button" onClick={() => void loadWorkspace()} title="Refresh">
             <RefreshCw size={18} />
           </button>
@@ -136,11 +140,11 @@ function App() {
                 statusFilter === status.value ? "is-active" : ""
               }`}
               key={status.value}
-              onClick={() => setStatusFilter(status.value)}
+              onClick={() => setStatusFilter(statusFilter === status.value ? "all" : status.value)}
             >
               <Icon size={18} />
               <span>{status.label}</span>
-              <strong>{tasks.filter((task) => task.status === status.value).length}</strong>
+              <strong>{allTasks.filter((task) => task.status === status.value).length}</strong>
             </button>
           );
         })}
@@ -151,7 +155,10 @@ function App() {
           <TaskForm
             token={activeToken}
             groups={groups}
-            onCreated={(task) => setTasks((current) => [task, ...current])}
+            onCreated={(task) => {
+              setTasks((current) => [task, ...current]);
+              setAllTasks((current) => [task, ...current]);
+            }}
             setMessage={setMessage}
           />
           <GroupPanel
@@ -164,6 +171,9 @@ function App() {
                 current.map((task) =>
                   task.groupId === id ? { ...task, groupId: null } : task,
                 ),
+              );
+              setAllTasks((current) =>
+                current.map((task) => (task.groupId === id ? { ...task, groupId: null } : task)),
               );
             }}
             setMessage={setMessage}
@@ -189,11 +199,22 @@ function App() {
             isLoading={isLoading}
             message={message}
             onUpdated={(updated) =>
-              setTasks((current) =>
-                current.map((taskItem) => (taskItem.id === updated.id ? updated : taskItem)),
-              )
+              {
+                setTasks((current) =>
+                  current.map((taskItem) => (taskItem.id === updated.id ? updated : taskItem)),
+                );
+                setAllTasks((current) =>
+                  current.map((taskItem) => (taskItem.id === updated.id ? updated : taskItem)),
+                );
+                if (statusFilter !== "all" && updated.status !== statusFilter) {
+                  setStatusFilter("all");
+                }
+              }
             }
-            onDeleted={(id) => setTasks((current) => current.filter((taskItem) => taskItem.id !== id))}
+            onDeleted={(id) => {
+              setTasks((current) => current.filter((taskItem) => taskItem.id !== id));
+              setAllTasks((current) => current.filter((taskItem) => taskItem.id !== id));
+            }}
             setMessage={setMessage}
           />
         </section>

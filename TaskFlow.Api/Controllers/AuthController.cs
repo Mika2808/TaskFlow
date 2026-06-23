@@ -129,6 +129,7 @@ public class AuthController : ControllerBase
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var name = User.FindFirst(ClaimTypes.Name)?.Value;
 
         if (userId == null || email == null || role == null)
         {
@@ -142,6 +143,7 @@ public class AuthController : ControllerBase
         {
             UserId = userId,
             Email = email,
+            Name = name,
             Role = role
         });
     }
@@ -159,6 +161,7 @@ public class AuthController : ControllerBase
         {
         new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
         new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Name, user.Nick),
         new Claim(ClaimTypes.Role, user.Role.ToString())
     };
 
