@@ -16,18 +16,28 @@ export function AuthView({ onAuthenticated, message, setMessage }: AuthViewProps
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  function switchMode(newMode: "login" | "register") {
+    setMode(newMode);
+    setLoginName("");
+    setEmail("");
+    setNick("");
+    setPassword("");
+    setMessage("");
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setIsSubmitting(true);
     setMessage("");
 
     try {
+      const trimmedPassword = password.trim();
       if (mode === "register") {
-        await register(email, nick, password);
-        const result = await login(email, password);
+        await register(email, nick.trim(), trimmedPassword);
+        const result = await login(email, trimmedPassword);
         onAuthenticated(result.token);
       } else {
-        const result = await login(loginName, password);
+        const result = await login(loginName.trim(), trimmedPassword);
         onAuthenticated(result.token);
       }
     } catch (error) {
@@ -47,14 +57,14 @@ export function AuthView({ onAuthenticated, message, setMessage }: AuthViewProps
         <div className="segmented">
           <button
             className={mode === "login" ? "is-active" : ""}
-            onClick={() => setMode("login")}
+            onClick={() => switchMode("login")}
             type="button"
           >
             Sign in
           </button>
           <button
             className={mode === "register" ? "is-active" : ""}
-            onClick={() => setMode("register")}
+            onClick={() => switchMode("register")}
             type="button"
           >
             Create account
@@ -115,7 +125,7 @@ export function AuthView({ onAuthenticated, message, setMessage }: AuthViewProps
                 : "Sign in"}
           </button>
         </form>
-        <p className="api-hint">API: {API_BASE_URL}</p>
+        {/* <p className="api-hint">API: {API_BASE_URL}</p> */}
       </section>
     </main>
   );
