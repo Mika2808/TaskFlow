@@ -236,6 +236,12 @@ label {
   box-shadow: inset 0 0 0 1px #2478a8;
 }
 
+/* Deadline select placeholder styling: when no group selected, show muted text */
+.panel-section select:invalid,
+.panel-section select[data-empty="true"] {
+  color: #9aa6ad;
+}
+  
 .workspace {
   display: grid;
   grid-template-columns: minmax(280px, 360px) 1fr;
@@ -281,37 +287,227 @@ label {
   background: #1f688f;
 }
 
+.deadline-field {
+  position: relative;
+}
+
+.datepicker-input {
+  width: 100%;
+  border: 1px solid #d4dce3;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #1f2933;
+  min-height: 42px;
+  padding: 0 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.datepicker-input:focus {
+  border-color: #2478a8;
+  box-shadow: 0 0 0 3px rgba(36, 120, 168, 0.12);
+}
+
+.datepicker-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 10px;
+  width: min(100%, 360px);
+  border: 1px solid #d4dce3;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 20px 70px rgba(15, 23, 42, 0.14);
+  z-index: 30;
+  padding: 1rem;
+}
+
+.datepicker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.datepicker-title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+}
+
+.datepicker-nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #374151;
+}
+
+.datepicker-nav-button:hover {
+  background: #eff6ff;
+}
+
+.datepicker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.datepicker-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.datepicker-day {
+  min-height: 38px;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: #374151;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.datepicker-day:hover {
+  background: #eef2ff;
+}
+
+.datepicker-day-outside {
+  color: #9ca3af;
+}
+
+.datepicker-day-selected {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.datepicker-day-today {
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
+.datepicker-time-row {
+  margin-top: 1rem;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.datepicker-time-label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  min-width: 100px;
+}
+
+.datepicker-time-input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d4dce3;
+  border-radius: 0.75rem;
+  padding: 0 12px;
+  color: #1f2933;
+  background: #ffffff;
+}
+
+.datepicker-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.datepicker-action-button {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 0.75rem;
+  font-weight: 700;
+}
+
+.datepicker-cancel-button {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.datepicker-cancel-button:hover {
+  background: #eef2ff;
+}
+
+.datepicker-ok-button {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.datepicker-ok-button:hover {
+  background: #1d4ed8;
+}
+
 .compact-form {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 9px;
-  margin-top: 14px;
+  gap: 14px;
+  margin-top: 20px;
 }
 
 .group-list {
   display: grid;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 14px;
+  margin-top: 20px;
 }
 
-.group-row {
-  gap: 9px;
-  min-height: 42px;
-  border: 1px solid #e2e8ed;
-  border-radius: 8px;
-  padding: 5px 5px 5px 10px;
+.group-item {
+  border: 1px solid #d4dce3;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.group-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.group-item-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #15232d;
+  font-weight: 700;
+}
+
+.group-item-title span {
+  font-size: 0.95rem;
+}
+
+.group-description {
+  margin: 0;
   color: #52616b;
+  line-height: 1.6;
+  font-size: 0.92rem;
 }
 
-.group-row span {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.toolbar {
+.datepicker-footer {
   display: grid;
   grid-template-columns: minmax(200px, 1fr) 150px 150px 150px;
   gap: 10px;

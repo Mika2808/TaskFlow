@@ -1,4 +1,4 @@
-import { Folder, Info, Plus, Trash2 } from "lucide-react";
+import { Folder, Plus, Trash2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { createTaskGroup, deleteTaskGroup } from "../../api";
 import type { TaskGroup } from "../../models";
@@ -21,7 +21,6 @@ export function GroupPanel({
 }: GroupPanelProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
@@ -43,7 +42,6 @@ export function GroupPanel({
     try {
       await deleteTaskGroup(token, id);
       onDeleted(id);
-      setOpenGroupId((current) => (current === id ? null : current));
     } catch (error) {
       setMessage(getErrorMessage(error));
     }
@@ -53,37 +51,36 @@ export function GroupPanel({
     <section className="panel-section">
       <h2>Groups</h2>
       <form className="compact-form" onSubmit={handleCreate}>
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Group name"
-          required
-        />
-        <input
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Description"
-          required
-        />
-        <button className="icon-button" title="Add group">
+        <label>
+          Name
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Description
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            rows={2}
+            required
+          />
+        </label>
+        <button className="primary-button" type="submit">
           <Plus size={17} />
+          Add group
         </button>
       </form>
       <div className="group-list">
         {groups.map((group) => (
           <article className="group-item" key={group.id}>
-            <div className="group-row">
-              <Folder size={16} />
-              <span>{group.name}</span>
-              <button
-                className="icon-button"
-                onClick={() =>
-                  setOpenGroupId((current) => (current === group.id ? null : group.id))
-                }
-                title="Show group description"
-              >
-                <Info size={16} />
-              </button>
+            <div className="group-item-header">
+              <div className="group-item-title">
+                <Folder size={16} />
+                <span>{group.name}</span>
+              </div>
               <button
                 className="icon-button"
                 onClick={() => void handleDelete(group.id)}
@@ -92,9 +89,7 @@ export function GroupPanel({
                 <Trash2 size={16} />
               </button>
             </div>
-            {openGroupId === group.id && (
-              <p className="group-description">{group.description}</p>
-            )}
+            <p className="group-description">{group.description}</p>
           </article>
         ))}
       </div>
